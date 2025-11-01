@@ -20,34 +20,32 @@ def send_help_regex(message):
 @bot.message_handler(content_types=['photo'])
 def get_photo(message):
     markup = types.InlineKeyboardMarkup()
-    btn1 = types.InlineKeyboardButton('Перейти на сайт', url='https://vsu.by/studentam/raspisanie-zanyatij.html  ')
+    btn1 = types.InlineKeyboardButton('Глянуть расписание', url='https://vsu.by/studentam/raspisanie-zanyatij.html  ')
     markup.row(btn1)
-    btn2 = types.InlineKeyboardButton('Удалить фото', callback_data='delete')
-    btn3 = types.InlineKeyboardButton('Изменить фото', callback_data='edit')
+    btn2 = types.InlineKeyboardButton('Удалить заметку', callback_data='delete')
+    btn3 = types.InlineKeyboardButton('Изменить заметку', callback_data='edit')
     markup.row(btn2, btn3)
-    bot.reply_to(message, 'Какое красивое фото!', reply_markup=markup)
 
 @bot.message_handler(regexp='[Hh]elp|[Пп]омощь|[Gg]jvjom')
 def send_help_regex(message):
     bot.reply_to(message, "<b>Бот предназначен для создания Заметок.</b>", parse_mode="html")
 
-# Эти обработчики нужно будет переместить в notes_manager или reminders, когда там появится логика
-@bot.callback_query_handler(func=lambda call: call.data == 'delete')
-def handle_delete_callback(call):
-    # Удалить фото (или заметку, если кнопка связана с заметкой)
-    bot.answer_callback_query(call.id) # Отвечаем на callback
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text="Фото (или заметка) удалена!", reply_markup=None)
+@bot.callback_query_handler(func=lambda call: True)
+def control(call):
 
-@bot.callback_query_handler(func=lambda call: call.data == 'edit')
-def handle_edit_callback(call):
-    # Начать редактирование (или заметки)
-    bot.answer_callback_query(call.id)
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text="Начинаем редактирование...", reply_markup=None)
+    bot.answer_callback_query(call.id) # Отвечаем на запрос, чтобы убрать у пользователя эффект бесконечной загрузки ответа на нажатие на кнопку
+    if call.data == 'delete':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Заметка удалена', reply_markup=None)
+    elif call.data == 'edit':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Редактирование заметки...', reply_markup=None)
+    elif call.data == 'cancel_action':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Действие отменено', reply_markup=None)
+    else:
+        bot.edit_message_text(chat_id=call.message.chat.id,message_id=call.message.message_id, text='Неизвестное действие', reply_markup=None)
+
 
 # Обработчик общих сообщений
-'''Это правило перехватывает абсолютно сообщения, которые не подходят под другие обработчики. Его важно опустить в самый низ, 
+'''Это правило перехватывает абсолютно все сообщения, которые не подходят под другие обработчики. Его важно опустить в самый низ, 
 чтобы другие команды срабатывали корректно
 Все команды кроме этих должны быть добавлены до этого обработчика.'''
 @bot.message_handler()
