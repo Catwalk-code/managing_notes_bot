@@ -1,37 +1,47 @@
-# Логика управления заметками
-from config import bot
+""" Логика управления заметками
+Этот файл содержит функции, которые работают с заметками и напоминаниями"""
+
 from telebot import types
-# from database import ... # Импортируем функции из database, когда они будут готовы
+from database import init_db, add_note, get_all_notes, delete_note, delete_all_user_notes, get_user_reminders, delete_reminder, delete_all_user_reminders
 
-# Обработчик команд. Каждое слово в кавычках внутри квадратных скобок соответствует определенной команде
-@bot.message_handler(commands=['start'])
-def start_bot(message):
-    first_name = message.from_user.first_name
-    last_name = message.from_user.last_name
+def add_note_logic(user_id, title, content):
+    # Добавляет заметку в БД
+    return add_note(user_id, title, content)
 
-    if last_name:
-        full_name = f'{first_name} {last_name}'
-    else:
-        full_name = f'{first_name}'
+def get_notes_logic(user_id):
+    # Получает заметки из БД
+    return get_all_notes(user_id)
 
-    bot.send_message(message.chat.id, f'Привет, {full_name}!')
+def delete_note_logic(user_id, note_id):
+    # Удаляет заметку из БД
+    delete_note(user_id, note_id)
 
-@bot.message_handler(commands=['help'])
-def bot_help(message):
-    bot.send_message(message.chat.id, '<b>Бот предназначен для создания Заметок.</b>', parse_mode='html')
+def delete_all_notes_logic(user_id):
+    # Удаляет все заметки пользователя
+    delete_all_user_notes(user_id)
 
-@bot.message_handler(commands=['add'])
-def add_note(message):
-    bot.send_message(message.chat.id, 'добавить заметку')
+def get_clear_confirmation_markup():
+    # Создает клавиатуру для подтверждения удаления всех заметок
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton('Подтвердить удаление', callback_data='confirm_clear')
+    markup.row(btn)
+    return markup
 
-@bot.message_handler(commands=['show'])
-def show_note(message):
-    bot.send_message(message.chat.id, 'Показать все созданные заметки')
+def get_user_reminders_logic(user_id):
+    # Получает напоминания пользователя из БД
+    return get_user_reminders(user_id)
 
-@bot.message_handler(commands=['delete'])
-def delete_note(message):
-    bot.send_message(message.chat.id, 'Удалить одну заметку')
+def delete_reminder_logic(reminder_id, user_id):
+    # Удаляет напоминание из БД
+    return delete_reminder(reminder_id, user_id)
 
-@bot.message_handler(commands=['clear'])
-def delete_all_notes(message): # Лучше дать уникальное имя, а не 'delete'
-    bot.send_message(message.chat.id, 'Удалить все заметки')
+def delete_all_reminders_logic(user_id):
+    # Удаляет все напоминания пользователя
+    return delete_all_user_reminders(user_id)
+
+def get_clear_reminders_confirmation_markup():
+    #Создает клавиатуру для подтверждения удаления всех напоминаний
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton('Подтвердить удаление', callback_data='confirm_clear_reminders')
+    markup.row(btn)
+    return markup
