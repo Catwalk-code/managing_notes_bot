@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 import notes_manager
 import reminders
-import datetime
+from datetime import datetime
 from database import init_db, add_note, get_all_notes, delete_note, delete_all_user_notes, add_reminder, get_user_reminders, delete_reminder
 from notes_manager import get_notes_logic, add_note_logic, delete_note_logic, delete_all_notes_logic, get_clear_confirmation_markup, get_user_reminders_logic, delete_reminder_logic, delete_all_reminders_logic, get_clear_reminders_confirmation_markup
 

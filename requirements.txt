@@ -1,1 +1,4 @@
-# Зависимости
+# Вот что нужно для запуска
+pyTelegramBotAPI==4.29.1
+python-dotenv==1.2.1
+python==3.12.9
