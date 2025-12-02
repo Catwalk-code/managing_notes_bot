@@ -146,7 +146,7 @@ def control(call):
             count = delete_all_reminders_logic(user_id)
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f'Все напоминания ({count} шт.) удалены!', reply_markup=None)
 
-# /расписание открывает расписание ВГУ им. П.М. Машерова
+# /расписание иди /timetable открывает расписание ВГУ им. П.М. Машерова
 @bot.message_handler(commands=['расписание', 'timetable'])
 def send_timetable_link(message):
     markup = types.InlineKeyboardMarkup()
