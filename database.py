@@ -1,4 +1,3 @@
-#Для работы с БД
 """Этот файл содержит функции для взаимодействия с базой данных SQLite.
  Используется для хранения заметок и напоминаний пользователей"""
 
@@ -38,8 +37,9 @@ def get_all_notes(user_id):
     # Получение всех заметок пользователя
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute('SELECT id, title, content, created_at FROM notes WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
-    notes = cursor.fetchall()
+    cursor.execute('SELECT id, title, content, created_at FROM notes WHERE user_id = ? ORDER BY created_at DESC', (user_id,)) # DESC - сортировка по столбцу в обратном порядке (от большего к меньшему)
+    #с помощью этого новые заметки будут первыми
+    notes = cursor.fetchall() # получает все строки, возвращённые предыдущим SQL-запросом
     conn.close()
     return notes
 
@@ -122,28 +122,33 @@ def delete_all_user_reminders(user_id):
         return changes  # Возвращает количество удалённых строк
 
 def check_and_send_reminders(bot):
-    # Проверяет и отправляет напоминания
-    # Эта функция запускается в отдельном потоке и работает постоянно.
+    #Проверяет и отправляет напоминания
     while True:
         try:
             reminders_list = get_all_reminders()
             current_time = datetime.now()
-            
+
             for reminder in reminders_list:
                 reminder_id, user_id, note_id, reminder_time_str, message, is_sent = reminder
-                
+
                 # Пропускаем уже отправленные напоминания
                 if is_sent:
                     continue
-                
-                # Преобразуем строку времени в объект datetime (только с секундами)
-                try:
-                    reminder_time = datetime.strptime(reminder_time_str, '%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    # Если формат неверный, пропускаем
-                    print(f"Неверный формат времени: {reminder_time_str}. Ожидается YYYY-MM-DD HH:MM:SS")
+
+                # Пытаемся распарсить время в одном из двух форматов
+                reminder_time = None
+                for fmt in ('%Y-%m-%d %H:%M:%S', '%d.%m.%Y %H:%M:%S'):
+                    try:
+                        reminder_time = datetime.strptime(reminder_time_str, fmt)
+                        break  # Если формат подошёл, выходим из цикла
+                    except ValueError:
+                        continue  # Пробуем следующий формат
+
+                # Если не удалось распарсить, пропускаем это напоминание
+                if reminder_time is None:
+                    print(f"Не удалось распарсить время: {reminder_time_str}")
                     continue
-                
+
                 # Если время напоминания настало или уже прошло
                 if current_time >= reminder_time:
                     # Отправляем сообщение пользователю
@@ -151,11 +156,11 @@ def check_and_send_reminders(bot):
                         bot.send_message(user_id, f"Напоминание: {message}")
                     except Exception as e:
                         print(f"Ошибка отправки напоминания пользователю {user_id}: {e}")
-                    
+
                     # Помечаем напоминание как отправленное
                     mark_reminder_as_sent(reminder_id)
         except Exception as e:
             print(f"Ошибка при проверке напоминаний: {e}")
-        
+
         # Проверяем каждые 60 секунд
         time.sleep(60)
