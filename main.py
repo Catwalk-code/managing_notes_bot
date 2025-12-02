@@ -30,12 +30,12 @@ def start_bot(message):
     else:
         full_name = f'{first_name}'
 
-    bot.send_message(message.chat.id, f'Привет, {full_name}!')
+    bot.send_message(message.chat.id, '<b>Привет, {}</b>, воспользуйся командой {}, что бы узнать больше о боте!'.format(full_name, "/help"), parse_mode='html')
 
 # /help - справка
 @bot.message_handler(commands=['help'])
 def bot_help(message):
-    bot.send_message(message.chat.id, '<b>Бот предназначен для создания Заметок.</b>', parse_mode='html')
+    bot.send_message(message.chat.id, '<b>Бот предназначен для создания Заметок. Используйте кнопку "Меню" чтобы приступить к использованию функционала.</b>', parse_mode='html')
 
 # /add для добавления заметки
 @bot.message_handler(commands=['add'])
@@ -47,14 +47,14 @@ def process_note_title(message):
     user_id = message.from_user.id
     title = message.text
     msg = bot.reply_to(message, 'Введите содержание заметки:')
-    bot.register_next_step_handler(msg, lambda m: process_note_content(m, user_id, title))
+    bot.register_next_step_handler(msg, lambda m: process_note_content(m, user_id, title)) # m - новое сообщение пользователя (а точнее его ответ)
 
 def process_note_content(message, user_id, title):
-    content = message.text
+    content = message.text # извлекает содержание заметки, отправленное пользователем
     note_id = notes_manager.add_note_logic(user_id, title, content)
     bot.reply_to(message, f'Заметка "{title}" добавлена с ID: {note_id}')
 
-# /show  показывает все заметки пользователя
+# /show показывает все заметки пользователя
 @bot.message_handler(commands=['show'])
 def show_note(message):
     user_id = message.from_user.id
@@ -66,7 +66,7 @@ def show_note(message):
 
     response_text = 'Ваши заметки:\n\n'
     for note in notes:
-        note_id, title, content, created_at = note
+        note_id, title, content, created_at = note # Здесь идет распаковка кортежей, ведь каждая строка из note является кортежем вида (id, title, content, created_at)
         response_text += f'ID: {note_id}\nЗаголовок: {title}\nСодержание: {content}\nДата создания: {created_at}\n\n'
 
     bot.reply_to(message, response_text)
@@ -92,19 +92,6 @@ def delete_all_notes(message):
     user_id = message.from_user.id
     bot.reply_to(message, 'Для подтверждения удаления всех заметок, пожалуйста, нажмите кнопку ниже.', reply_markup=notes_manager.get_clear_confirmation_markup())
 
-# /расписание открывает расписание ВГУ им. П.М. Машерова
-@bot.message_handler(commands=['расписание', 'timetable'])
-def send_timetable_link(message):
-    markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton('Открыть расписание', url='https://vsu.by/studentam/raspisanie-zanyatij.html  ')
-    markup.add(btn)
-    bot.reply_to(message, "Нажмите кнопку ниже, чтобы открыть расписание:", reply_markup=markup)
-
-# Обработчик сообщений с текстом "help", "помощь", "gjvjom" используется также для справки без "/"
-@bot.message_handler(regexp='[Hh]elp|[Пп]омощь|[Gg]jvjom')
-def send_help_regex(message):
-    bot.reply_to(message, "<b>Бот предназначен для создания Заметок.</b>", parse_mode="html")
-
 # Обработчик нажатий на inline-кнопки
 @bot.callback_query_handler(func=lambda call: True)
 def control(call):
@@ -120,9 +107,10 @@ def control(call):
         # Подтверждение удаления всех заметок с защитой от случайного нажатия
         user_id = call.message.chat.id
         # Создаём атрибут функции, чтобы хранить счётчик попыток для каждого пользователя
-        if not hasattr(delete_all_notes, 'attempt_count'):
+        if not hasattr(delete_all_notes, 'attempt_count'): # Инвертируем результат в сторону True, если атрибута нет, с помощью not
+            # hasattr(delete_all_notes, 'attempt_count') проверяет, есть ли у функции delete_all_notes атрибут с именем attempt_count
             delete_all_notes.attempt_count = {}
-        
+
         # Если пользователь ещё не начинал подтверждение, создаём счётчик
         if user_id not in delete_all_notes.attempt_count:
             delete_all_notes.attempt_count[user_id] = 0
@@ -131,7 +119,8 @@ def control(call):
         if delete_all_notes.attempt_count[user_id] < 2:
             # Если нажал меньше 3 раз, увеличиваем счётчик и просим нажать ещё
             delete_all_notes.attempt_count[user_id] += 1
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f'Вы подтвердили удаление. Пожалуйста, нажмите кнопку еще {3 - delete_all_notes.attempt_count[user_id]} раз(а) для подтверждения.', reply_markup=notes_manager.get_clear_confirmation_markup())
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f'Вы подтвердили удаление. Пожалуйста, нажмите кнопку еще {3 - delete_all_notes.attempt_count[user_id]}'
+                                                                                                         f' раз(а) для подтверждения.', reply_markup=notes_manager.get_clear_confirmation_markup())
         else:
             # Если нажал 3 раза, удаляем все заметки пользователя
             notes_manager.delete_all_notes_logic(user_id)
@@ -142,7 +131,7 @@ def control(call):
         # Создаём атрибут функции, чтобы хранить счётчик попыток для каждого пользователя
         if not hasattr(delete_all_reminders_command, 'attempt_count'):
             delete_all_reminders_command.attempt_count = {}
-        
+
         # Если пользователь ещё не начинал подтверждение, задаём счётчик
         if user_id not in delete_all_reminders_command.attempt_count:
             delete_all_reminders_command.attempt_count[user_id] = 0
@@ -156,6 +145,19 @@ def control(call):
             # Если нажал 3 раза, удаляем все напоминания пользователя
             count = delete_all_reminders_logic(user_id)
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f'Все напоминания ({count} шт.) удалены!', reply_markup=None)
+
+# /расписание открывает расписание ВГУ им. П.М. Машерова
+@bot.message_handler(commands=['расписание', 'timetable'])
+def send_timetable_link(message):
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton('Открыть расписание', url='https://vsu.by/studentam/raspisanie-zanyatij.html  ')
+    markup.add(btn)
+    bot.reply_to(message, "Нажмите кнопку ниже, чтобы открыть расписание:", reply_markup=markup)
+
+# Обработчик сообщений с текстом "help", "помощь", "gjvjom" используется также для справки без "/"
+@bot.message_handler(regexp='[Hh]elp|[Пп]омощь|[Gg]jvjom')
+def send_help_regex(message):
+    bot.reply_to(message, "<b>Бот предназначен для создания Заметок.</b>", parse_mode="html")
 
 #  /remind для установки напоминания
 @bot.message_handler(commands=['remind'])
@@ -178,15 +180,31 @@ def set_reminder_command(message):
     msg = bot.reply_to(message, response_text)
     bot.register_next_step_handler(msg, lambda m: ask_reminder_time(m, user_id))
 
+def ask_reminder_time(message, user_id):
+    try:
+        note_id = int(message.text)
+        # Проверим, что заметка существует
+        notes = notes_manager.get_notes_logic(user_id)
+        note_exists = any(note[0] == note_id for note in notes)
+        if not note_exists:
+            bot.reply_to(message, 'Заметка с таким ID не найдена.')
+            return
+
+        # Попросим ввести дату в новом формате
+        msg = bot.reply_to(message, 'Введите дату и время напоминания в формате: DD.MM.YYYY HH:MM (например, 15.11.2025 18:30)')
+        bot.register_next_step_handler(msg, lambda m: process_reminder_time(m, user_id, note_id))
+    except ValueError:
+        bot.reply_to(message, 'Пожалуйста, введите корректный ID заметки (число).')
+
 def process_reminder_time(message, user_id, note_id):
-    reminder_time_str = message.text.strip()
+    reminder_time_str = message.text.strip() #Извлекает текст из сообщения пользователя и удаляет лишние пробелы в начале и конце
 
     # Проверим формат даты (только до минут)
     try:
         # Попробуем распарсить дату и время до минут
-        datetime.strptime(reminder_time_str, '%Y-%m-%d %H:%M')
+        datetime.strptime(reminder_time_str, '%d.%m.%Y %H:%M') # пытается преобразовать строку в объект даты и времени
     except ValueError:
-        bot.reply_to(message, 'Неверный формат даты. Используйте формат: YYYY-MM-DD HH:MM')
+        bot.reply_to(message, 'Неверный формат даты. Используйте формат: DD.MM.YYYY HH:MM (например, 15.11.2025 18:30)')
         return
 
     # Добавим :00 к времени, чтобы учитывать секунды, ибо в базе данных время хранится с секундами
@@ -202,21 +220,6 @@ def process_reminder_time(message, user_id, note_id):
 
     bot.reply_to(message, f'Напоминание установлено на {reminder_time_str} для заметки с ID {note_id}.')
 
-def ask_reminder_time(message, user_id):
-    try:
-        note_id = int(message.text)
-        # Проверим, что заметка существует
-        notes = notes_manager.get_notes_logic(user_id)
-        note_exists = any(note[0] == note_id for note in notes)
-        if not note_exists:
-            bot.reply_to(message, 'Заметка с таким ID не найдена.')
-            return
-
-        msg = bot.reply_to(message, 'Введите дату и время напоминания в формате: YYYY-MM-DD HH:MM')
-        bot.register_next_step_handler(msg, lambda m: process_reminder_time(m, user_id, note_id))
-    except ValueError:
-        bot.reply_to(message, 'Пожалуйста, введите корректный ID заметки (число).')
-
 # /show_reminders показывает все напоминания пользователя
 @bot.message_handler(commands=['show_reminders'])
 def show_reminders_command(message):
@@ -231,9 +234,11 @@ def show_reminders_command(message):
     for reminder in reminders_list:
         reminder_id, note_id, reminder_time, message_text, is_sent = reminder
         status = "отправлено" if is_sent else "ожидает"
-        # Получаем заголовок заметки, чтобы пользователь не путал ID напоминания и ID заметки
+        # Получаем заголовок заметки по её ID для формирования текста напоминания.
+        # Если заметка с указанным ID не найдена, возвращается строка "Без заголовка".
         notes = get_notes_logic(user_id)
-        note_title = next((note[1] for note in notes if note[0] == note_id), "Без заголовка")
+        note_title = next((note[1] for note in notes if note[0] == note_id), "Без заголовка") # note[1] — это заголовок заметки (второй элемент)
+        # note[0] — это ID заметки (первый элемент)
         response_text += f'ID напоминания: {reminder_id}\nДля заметки: "{note_title}"\nВремя: {reminder_time}\nСтатус: {status}\nТекст: {message_text}\n\n'
 
     bot.reply_to(message, response_text)
@@ -308,7 +313,6 @@ def info(message):
     elif message.text.lower() == 'id':
         bot.reply_to(message, f'ID: {message.from_user.id}')
 
-# Запуск бота
 if __name__ == '__main__':
     print("Бот запущен...")
     reminders.start_reminder_thread()
